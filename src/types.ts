@@ -13,12 +13,21 @@ export type WarrantyItem = {
   documentImage: string;
 };
 
+export type MainTabParamList = {
+  GuaranteesTab: undefined;
+  DocumentsTab: undefined;
+  AddTab: undefined;
+  SubscriptionsTab: undefined;
+  SettingsTab: undefined;
+};
+
 export type RootStackParamList = {
+  MainTabs: undefined;
   Home: undefined;
   MyWarranties: undefined;
+  Settings: undefined;
   WarrantyDetails: { warrantyId: string };
   AddWarranty: undefined;
-  Settings: undefined;
   EditProfile: undefined;
   ChangePassword: undefined;
 };

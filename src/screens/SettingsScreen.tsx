@@ -1,24 +1,24 @@
 ﻿import { ScrollView, Text, View } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppHeader } from '../components/AppHeader';
 import { SectionHeader } from '../components/SectionHeader';
 import { SettingsRow } from '../components/SettingsRow';
-import { RootStackParamList } from '../types';
 import { AnimatedEntrance } from '../components/AnimatedEntrance';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
+export function SettingsScreen({ navigation }: { navigation: any }) {
+  const goToStack = (screen: string) => {
+    navigation.getParent()?.navigate(screen as never);
+  };
 
-export function SettingsScreen({ navigation }: Props) {
   return (
     <View className="flex-1 bg-appBg">
-      <AppHeader title="Configurações" onBack={navigation.goBack} />
+      <AppHeader title="Configurações" />
 
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 24 }}>
         <AnimatedEntrance delay={30}>
           <View className="mt-4">
             <SectionHeader label="Minha Conta" />
-            <SettingsRow icon="user" title="Editar Perfil" onPress={() => navigation.navigate('EditProfile')} />
-            <SettingsRow icon="lock" title="Alterar Senha" onPress={() => navigation.navigate('ChangePassword')} />
+            <SettingsRow icon="user" title="Editar Perfil" onPress={() => goToStack('EditProfile')} />
+            <SettingsRow icon="lock" title="Alterar Senha" onPress={() => goToStack('ChangePassword')} />
             <SettingsRow icon="log-out" title="Sair" danger />
           </View>
         </AnimatedEntrance>

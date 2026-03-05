@@ -1,39 +1,35 @@
 ﻿import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AppHeader } from '../components/AppHeader';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { WarrantyCard } from '../components/WarrantyCard';
 import { warranties } from '../data/mockData';
-import { RootStackParamList } from '../types';
 import { AnimatedEntrance } from '../components/AnimatedEntrance';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
-
-export function HomeScreen({ navigation }: Props) {
+export function HomeScreen({ navigation }: { navigation: any }) {
   const validCount = warranties.filter((item) => item.status !== 'expired').length;
   const expiredCount = warranties.filter((item) => item.status === 'expired').length;
   const expiringCount = warranties.filter((item) => item.status === 'expiring').length;
 
+  const goToStack = (screen: string, params?: Record<string, unknown>) => {
+    navigation.getParent()?.navigate(screen as never, params as never);
+  };
+
   return (
     <View className="flex-1 bg-appBg">
       <AppHeader
-        title="Minhas Garantias"
+        title="Garantia Fácil"
         rightContent={
-          <TouchableOpacity onPress={() => navigation.navigate('Settings')} className="h-10 w-10 items-center justify-center">
-            <Feather name="sliders" size={24} color="#4B5563" />
+          <TouchableOpacity onPress={() => navigation.navigate('SettingsTab')} className="h-10 w-10 items-center justify-center">
+            <Feather name="settings" size={24} color="#4B5563" />
           </TouchableOpacity>
         }
       />
 
       <ScrollView className="flex-1 px-4" contentContainerStyle={{ paddingBottom: 30 }}>
         <AnimatedEntrance delay={20}>
-          <View className="mt-5 items-center">
-            <View className="h-16 w-16 items-center justify-center rounded-2xl bg-appPrimary">
-              <Feather name="shield" size={30} color="#FFFFFF" />
-            </View>
-            <Text className="mt-3 text-[40px] font-bold text-appText">Garantia Fácil</Text>
-            <Text className="mt-2 px-3 text-center text-[17px] leading-7 text-[#4B5563]">
+          <View className="mt-4 items-center">
+            <Text className="px-3 text-center text-[17px] leading-7 text-[#4B5563]">
               Gerencie suas garantias de produtos de forma simples e nunca mais perca um prazo.
             </Text>
           </View>
@@ -41,7 +37,7 @@ export function HomeScreen({ navigation }: Props) {
 
         <AnimatedEntrance delay={100}>
           <View className="mt-4">
-            <PrimaryButton title="+ Adicionar Produto" onPress={() => navigation.navigate('AddWarranty')} />
+            <PrimaryButton title="+ Adicionar Produto" onPress={() => goToStack('AddWarranty')} />
           </View>
         </AnimatedEntrance>
 
@@ -79,7 +75,7 @@ export function HomeScreen({ navigation }: Props) {
               key={item.id}
               item={item}
               index={index}
-              onPress={() => navigation.navigate('WarrantyDetails', { warrantyId: item.id })}
+              onPress={() => goToStack('WarrantyDetails', { warrantyId: item.id })}
             />
           ))}
         </View>
