@@ -1,28 +1,34 @@
 ﻿import { BottomTabBarProps, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Feather } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useState } from 'react';
+import { AddOptionsSheet } from '../components/AddOptionsSheet';
+import { DashboardScreen } from '../screens/DashboardScreen';
 import { DocumentsScreen } from '../screens/DocumentsScreen';
-import { HomeScreen } from '../screens/HomeScreen';
-import { SettingsScreen } from '../screens/SettingsScreen';
+import { MyWarrantiesScreen } from '../screens/MyWarrantiesScreen';
 import { SubscriptionsScreen } from '../screens/SubscriptionsScreen';
-import { MainTabParamList } from '../types';
+import { MainTabParamList, RootStackParamList } from '../types';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
+
+type AddAction = 'warranty' | 'document' | 'subscription';
 
 function EmptyScreen() {
   return <View className="flex-1 bg-appBg" />;
 }
 
 const tabMeta: Record<keyof MainTabParamList, { label: string; icon: keyof typeof Feather.glyphMap }> = {
+  HomeTab: { label: 'Home', icon: 'home' },
   GuaranteesTab: { label: 'Garantias', icon: 'shield' },
-  DocumentsTab: { label: 'Documentos', icon: 'file-text' },
   AddTab: { label: '', icon: 'plus' },
+  DocumentsTab: { label: 'Documentos', icon: 'file-text' },
   SubscriptionsTab: { label: 'Assinaturas', icon: 'credit-card' },
-  SettingsTab: { label: 'Ajustes', icon: 'settings' },
 };
 
-function CustomTabBar({ state, navigation }: BottomTabBarProps) {
+function CustomTabBar({ state, navigation, onOpenAddMenu }: BottomTabBarProps & { onOpenAddMenu: () => void }) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -48,7 +54,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
             return (
               <View key={route.key} className="w-1/5 items-center">
                 <Pressable
-                  onPress={() => navigation.getParent()?.navigate('AddWarranty' as never)}
+                  onPress={onOpenAddMenu}
                   style={{
                     marginTop: -30,
                     height: 68,
@@ -98,13 +104,42 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 }
 
 export function MainTabs() {
+  const [showAddMenu, setShowAddMenu] = useState(false);
+  const stackNavigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  const handleSelectAction = (action: AddAction) => {
+    setShowAddMenu(false);
+
+    setTimeout(() => {
+      if (action === 'warranty') {
+        stackNavigation.navigate('AddWarranty');
+      }
+
+      if (action === 'document') {
+        stackNavigation.navigate('AddDocument');
+      }
+
+      if (action === 'subscription') {
+        stackNavigation.navigate('AddSubscription');
+      }
+    }, 120);
+  };
+
   return (
-    <Tab.Navigator tabBar={(props) => <CustomTabBar {...props} />} screenOptions={{ headerShown: false }}>
-      <Tab.Screen name="GuaranteesTab" component={HomeScreen as any} />
-      <Tab.Screen name="DocumentsTab" component={DocumentsScreen} />
-      <Tab.Screen name="AddTab" component={EmptyScreen} />
-      <Tab.Screen name="SubscriptionsTab" component={SubscriptionsScreen} />
-      <Tab.Screen name="SettingsTab" component={SettingsScreen as any} />
-    </Tab.Navigator>
+    <View className="flex-1">
+      <Tab.Navigator
+        initialRouteName="HomeTab"
+        tabBar={(props) => <CustomTabBar {...props} onOpenAddMenu={() => setShowAddMenu(true)} />}
+        screenOptions={{ headerShown: false }}
+      >
+        <Tab.Screen name="HomeTab" component={DashboardScreen as any} />
+        <Tab.Screen name="GuaranteesTab" component={MyWarrantiesScreen as any} />
+        <Tab.Screen name="AddTab" component={EmptyScreen} />
+        <Tab.Screen name="DocumentsTab" component={DocumentsScreen as any} />
+        <Tab.Screen name="SubscriptionsTab" component={SubscriptionsScreen as any} />
+      </Tab.Navigator>
+
+      <AddOptionsSheet visible={showAddMenu} onClose={() => setShowAddMenu(false)} onSelect={handleSelectAction} />
+    </View>
   );
 }

@@ -2,10 +2,10 @@
 import { Animated, ScrollView, TouchableOpacity, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { AppHeader } from '../components/AppHeader';
 import { WarrantyCard } from '../components/WarrantyCard';
 import { warranties } from '../data/mockData';
 import { RootStackParamList } from '../types';
+import { StandardPageHeader } from '../components/StandardPageHeader';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MyWarranties'>;
 
@@ -22,28 +22,23 @@ export function MyWarrantiesScreen({ navigation }: Props) {
   }, [pulse]);
 
   return (
-    <View className="flex-1 bg-appBg">
-      <AppHeader
-        title="Minhas Garantias"
-        rightContent={
-          <TouchableOpacity className="h-10 w-10 items-center justify-center">
-            <Feather name="sliders" size={24} color="#4B5563" />
-          </TouchableOpacity>
-        }
-      />
+    <View className="flex-1 bg-[#E5E7EB]">
+      <StandardPageHeader title="Garantias" navigation={navigation} />
 
-      <ScrollView className="flex-1 px-4 pt-4" contentContainerStyle={{ paddingBottom: 120 }}>
-        {warranties.map((item, index) => (
-          <WarrantyCard
-            key={item.id}
-            item={item}
-            index={index}
-            onPress={() => navigation.navigate('WarrantyDetails', { warrantyId: item.id })}
-          />
-        ))}
-      </ScrollView>
+      <View className="mx-3 flex-1 rounded-2xl border border-[#D7DCE4] bg-[#F4F6F9] px-3 pt-3">
+        <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 120 }}>
+          {warranties.map((item, index) => (
+            <WarrantyCard
+              key={item.id}
+              item={item}
+              index={index}
+              onPress={() => navigation.navigate('WarrantyDetails', { warrantyId: item.id })}
+            />
+          ))}
+        </ScrollView>
+      </View>
 
-      <Animated.View style={{ transform: [{ scale: pulse }] }} className="absolute bottom-8 right-8">
+      <Animated.View style={{ transform: [{ scale: pulse }] }} className="absolute bottom-28 right-6">
         <TouchableOpacity
           onPress={() => navigation.navigate('AddWarranty')}
           className="h-16 w-16 items-center justify-center rounded-full bg-appPrimary"
