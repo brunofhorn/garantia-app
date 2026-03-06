@@ -27,6 +27,7 @@ export type RootStackParamList = {
   Home: undefined;
   MyWarranties: undefined;
   Settings: undefined;
+  UserProfile: undefined;
   WarrantyDetails: { warrantyId: string };
   AddWarranty: undefined;
   AddDocument: undefined;

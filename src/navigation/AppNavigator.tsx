@@ -9,6 +9,7 @@ import { AddDocumentScreen } from '../screens/AddDocumentScreen';
 import { AddSubscriptionScreen } from '../screens/AddSubscriptionScreen';
 import { DashboardScreen } from '../screens/DashboardScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { UserProfileScreen } from '../screens/UserProfileScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -18,6 +19,7 @@ export function AppNavigator() {
       <Stack.Screen name="MainTabs" component={MainTabs} />
       <Stack.Screen name="Dashboard" component={DashboardScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="UserProfile" component={UserProfileScreen} />
       <Stack.Screen name="WarrantyDetails" component={WarrantyDetailsScreen} />
       <Stack.Screen name="AddWarranty" component={AddWarrantyScreen} />
       <Stack.Screen name="AddDocument" component={AddDocumentScreen} />

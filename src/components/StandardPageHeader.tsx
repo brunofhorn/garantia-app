@@ -7,9 +7,21 @@ type StandardPageHeaderProps = {
   navigation: any;
   showBack?: boolean;
   onBack?: () => void;
+  enableProfileLink?: boolean;
 };
 
-export function StandardPageHeader({ title, navigation, showBack = false, onBack }: StandardPageHeaderProps) {
+export function StandardPageHeader({ title, navigation, showBack = false, onBack, enableProfileLink = true }: StandardPageHeaderProps) {
+  const goToProfile = () => {
+    const parent = navigation?.getParent?.();
+
+    if (parent?.navigate) {
+      parent.navigate('UserProfile');
+      return;
+    }
+
+    navigation?.navigate?.('UserProfile');
+  };
+
   const goToSettings = () => {
     const parent = navigation?.getParent?.();
 
@@ -42,7 +54,7 @@ export function StandardPageHeader({ title, navigation, showBack = false, onBack
       </View>
 
       <View className="mb-2 flex-row items-center justify-between rounded-xl border border-[#D7DCE4] bg-white px-3 py-2.5">
-        <View className="flex-row items-center">
+        <TouchableOpacity activeOpacity={0.8} className="flex-row items-center" onPress={goToProfile} disabled={!enableProfileLink}>
           <View className="h-12 w-12 items-center justify-center rounded-xl bg-[#1D74D8]">
             <Feather name="grid" size={20} color="#fff" />
           </View>
@@ -50,7 +62,7 @@ export function StandardPageHeader({ title, navigation, showBack = false, onBack
             <Text className="text-[12px] font-semibold text-[#94A3B8]">Bem-vindo(a),</Text>
             <Text className="text-[18px] font-bold text-[#1E293B]">Alex Johnson</Text>
           </View>
-        </View>
+        </TouchableOpacity>
 
         <View className="flex-row items-center gap-1">
           <TouchableOpacity className="h-8 w-8 items-center justify-center" activeOpacity={0.75}>
