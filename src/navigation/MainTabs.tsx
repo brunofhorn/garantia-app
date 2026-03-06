@@ -36,12 +36,12 @@ function CustomTabBar({ state, navigation, onOpenAddMenu }: BottomTabBarProps & 
       style={{
         paddingBottom: Math.max(insets.bottom, 6),
         paddingTop: 8,
-        backgroundColor: '#F9FAFC',
+        backgroundColor: '#060D1A',
         borderTopWidth: 1,
-        borderTopColor: '#D6DAE1',
-        shadowColor: '#000',
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
+        borderTopColor: '#1E2A40',
+        shadowColor: '#00D4FF',
+        shadowOpacity: 0.15,
+        shadowRadius: 14,
         elevation: 8,
       }}
     >
@@ -60,18 +60,18 @@ function CustomTabBar({ state, navigation, onOpenAddMenu }: BottomTabBarProps & 
                     height: 68,
                     width: 68,
                     borderRadius: 34,
-                    backgroundColor: '#2282E8',
+                    backgroundColor: '#1BD5FF',
                     alignItems: 'center',
                     justifyContent: 'center',
                     borderWidth: 4,
-                    borderColor: '#F9FAFC',
-                    shadowColor: '#2282E8',
-                    shadowOpacity: 0.28,
-                    shadowRadius: 12,
+                    borderColor: '#060D1A',
+                    shadowColor: '#00D4FF',
+                    shadowOpacity: 0.45,
+                    shadowRadius: 16,
                     elevation: 7,
                   }}
                 >
-                  <Feather name="plus" size={31} color="#fff" />
+                  <Feather name="plus" size={31} color="#031529" />
                 </Pressable>
               </View>
             );
@@ -84,13 +84,13 @@ function CustomTabBar({ state, navigation, onOpenAddMenu }: BottomTabBarProps & 
               onPress={() => navigation.navigate(route.name)}
               style={{ paddingBottom: 2 }}
             >
-              <Feather name={meta.icon} size={20} color={isFocused ? '#2282E8' : '#7B8596'} />
+              <Feather name={meta.icon} size={20} color={isFocused ? '#1BD5FF' : '#6E7F9B'} />
               <Text
                 style={{
                   marginTop: 4,
                   fontSize: 11,
                   fontWeight: isFocused ? '700' : '500',
-                  color: isFocused ? '#2282E8' : '#7B8596',
+                  color: isFocused ? '#1BD5FF' : '#6E7F9B',
                 }}
               >
                 {meta.label}

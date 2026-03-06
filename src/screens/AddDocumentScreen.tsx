@@ -1,49 +1,74 @@
 ﻿import { useState } from 'react';
 import { Pressable, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { StandardPageHeader } from '../components/StandardPageHeader';
 
 function FieldLabel({ children }: { children: string }) {
-  return <Text className="mb-2 text-[14px] font-semibold text-[#334155]">{children}</Text>;
+  return <Text className="mb-2 text-[13px] font-semibold tracking-[0.4px] text-[#8FA3C0]">{children}</Text>;
+}
+
+function DarkInput({ placeholder, icon }: { placeholder: string; icon?: keyof typeof Feather.glyphMap }) {
+  return (
+    <View className="h-12 flex-row items-center rounded-xl border border-[#1F2C45] bg-[#0F1A2E] px-3">
+      <TextInput className="flex-1 text-[15px] text-[#EAF0F8]" placeholder={placeholder} placeholderTextColor="#6E7F9B" />
+      {icon ? <Feather name={icon} size={16} color="#8EA0BA" /> : null}
+    </View>
+  );
 }
 
 export function AddDocumentScreen({ navigation }: { navigation: any }) {
   const [isPermanent, setIsPermanent] = useState(false);
 
   return (
-    <View className="flex-1 bg-[#E5E7EB]">
-      <StandardPageHeader title="Cadastro de Documento" navigation={navigation} showBack />
-
-      <View className="mx-3 flex-1 rounded-2xl border border-[#D7DCE4] bg-white px-4 pt-3 pb-6">
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-          <View className="mb-4 items-center rounded-2xl border border-dashed border-[#93C5FD] bg-[#F8FBFF] px-4 py-6">
-            <View className="h-14 w-14 items-center justify-center rounded-full bg-[#DBEAFE]"><Feather name="camera" size={24} color="#2563EB" /></View>
-            <Text className="mt-3 text-[22px] font-semibold text-[#1E293B]">Adicionar Foto ou Arquivo</Text>
-            <Text className="mt-1 text-[14px] text-[#64748B]">Tire uma foto ou selecione um PDF</Text>
-            <Pressable className="mt-4 h-10 rounded-lg bg-[#2583E5] px-7 items-center justify-center" android_ripple={{ color: '#1D6FC2' }}><Text className="text-[16px] font-semibold text-white">Selecionar</Text></Pressable>
+    <View className="flex-1 bg-[#060D1A]">
+      <View className="mx-3 mt-2 overflow-hidden rounded-t-3xl border border-[#1A2740] bg-[#0A1222]">
+        <View className="px-5 py-5 flex-row items-center justify-between">
+          <View className="flex-row items-center">
+            <TouchableOpacity onPress={navigation.goBack} className="h-9 w-9 items-center justify-center"><Feather name="arrow-left" size={20} color="#8FA3C0" /></TouchableOpacity>
+            <Text className="ml-2 text-[18px] font-bold text-[#F8FAFC]">Novo Documento</Text>
           </View>
+          <TouchableOpacity className="h-9 w-9 items-center justify-center" onPress={() => navigation.navigate('Settings')}><Feather name="settings" size={20} color="#8FA3C0" /></TouchableOpacity>
+        </View>
+        <View className="h-px bg-[#1A2740]" />
+      </View>
+
+      <View className="mx-3 flex-1">
+        <ScrollView className="flex-1 px-1 pt-4" contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+          <TouchableOpacity activeOpacity={0.88} className="mb-4 rounded-xl border border-dashed border-[#2A8CFF]/60 bg-[#0F1A2E] px-4 py-8">
+            <View className="items-center">
+              <View className="h-12 w-12 items-center justify-center rounded-full bg-[#132746]"><Feather name="camera" size={20} color="#4FA0FF" /></View>
+              <Text className="mt-3 text-[16px] font-semibold text-[#EAF0F8]">Adicionar Foto ou Arquivo</Text>
+              <Text className="mt-1 text-[13px] text-[#7E8FA8]">Tire uma foto ou selecione um PDF</Text>
+              <Pressable className="mt-4 h-10 rounded-lg bg-[#1BD5FF] px-7 items-center justify-center"><Text className="text-[15px] font-semibold text-[#031529]">Selecionar</Text></Pressable>
+            </View>
+          </TouchableOpacity>
 
           <FieldLabel>Tipo de Documento</FieldLabel>
-          <TouchableOpacity activeOpacity={0.85} className="mb-4 h-12 flex-row items-center justify-between rounded-lg border border-[#D7DCE4] bg-[#F8FAFC] px-3"><Text className="text-[15px] text-[#475569]">Selecione o tipo</Text><Feather name="chevron-down" size={18} color="#94A3B8" /></TouchableOpacity>
+          <TouchableOpacity activeOpacity={0.85} className="mb-4 h-12 flex-row items-center justify-between rounded-xl border border-[#1F2C45] bg-[#0F1A2E] px-3"><Text className="text-[15px] text-[#7E8FA8]">Selecione o tipo</Text><Feather name="chevron-down" size={17} color="#8EA0BA" /></TouchableOpacity>
 
           <FieldLabel>Nome ou Apelido</FieldLabel>
-          <TextInput className="mb-4 h-12 rounded-lg border border-[#D7DCE4] bg-[#F8FAFC] px-3 text-[15px] text-[#0F172A]" placeholder="Ex: Meu RG Principal" placeholderTextColor="#94A3B8" />
+          <DarkInput placeholder="Ex: Meu RG Principal" />
 
-          <FieldLabel>Número do Documento</FieldLabel>
-          <TextInput className="mb-4 h-12 rounded-lg border border-[#D7DCE4] bg-[#F8FAFC] px-3 text-[15px] text-[#0F172A]" placeholder="00.000.000-0" placeholderTextColor="#94A3B8" />
-
-          <View className="mb-4 flex-row justify-between">
-            <View className="w-[48%]"><FieldLabel>Data de Emissão</FieldLabel><View className="h-12 flex-row items-center rounded-lg border border-[#D7DCE4] bg-[#F8FAFC] px-3"><TextInput className="flex-1 text-[15px] text-[#0F172A]" placeholder="mm/dd/yyyy" placeholderTextColor="#94A3B8" /><Feather name="calendar" size={16} color="#0F172A" /></View></View>
-            <View className="w-[48%]"><FieldLabel>Data de Validade</FieldLabel><View className="h-12 flex-row items-center rounded-lg border border-[#D7DCE4] bg-[#F8FAFC] px-3"><TextInput className="flex-1 text-[15px] text-[#0F172A]" placeholder="mm/dd/yyyy" placeholderTextColor="#94A3B8" /><Feather name="calendar" size={16} color="#0F172A" /></View></View>
+          <View className="mt-3">
+            <FieldLabel>Número do Documento</FieldLabel>
+            <DarkInput placeholder="00.000.000-0" />
           </View>
 
-          <View className="mb-5 flex-row items-center justify-between">
-            <View><Text className="text-[16px] font-semibold text-[#334155]">Documento Permanente</Text><Text className="text-[12px] text-[#94A3B8]">Não possui data de validade</Text></View>
-            <Switch value={isPermanent} onValueChange={setIsPermanent} trackColor={{ false: '#D1D5DB', true: '#93C5FD' }} thumbColor={isPermanent ? '#2583E5' : '#F8FAFC'} />
+          <View className="mt-4 mb-2 flex-row justify-between">
+            <View className="w-[48%]"><FieldLabel>Data de Emissão</FieldLabel><DarkInput placeholder="DD/MM/AAAA" icon="calendar" /></View>
+            <View className="w-[48%]"><FieldLabel>Data de Validade</FieldLabel><DarkInput placeholder="DD/MM/AAAA" icon="calendar" /></View>
           </View>
 
-          <TouchableOpacity activeOpacity={0.9} className="h-12 items-center justify-center rounded-xl bg-[#2583E5]" style={{ elevation: 2 }}><Text className="text-[19px] font-bold text-white">Salvar Documento</Text></TouchableOpacity>
+          <View className="mb-5 mt-2 flex-row items-center justify-between rounded-xl border border-[#1F2C45] bg-[#0F1A2E] px-3 py-3">
+            <View><Text className="text-[15px] font-semibold text-[#EAF0F8]">Documento Permanente</Text><Text className="text-[12px] text-[#7E8FA8]">Não possui data de validade</Text></View>
+            <Switch value={isPermanent} onValueChange={setIsPermanent} trackColor={{ false: '#24354F', true: '#1BD5FF' }} thumbColor={isPermanent ? '#031529' : '#8EA0BA'} />
+          </View>
         </ScrollView>
+
+        <View className="pb-8">
+          <TouchableOpacity activeOpacity={0.9} className="h-12 items-center justify-center rounded-xl bg-[#1BD5FF]" style={{ borderWidth: 3, borderColor: '#060D1A', shadowColor: '#00D4FF', shadowOpacity: 0.35, shadowRadius: 10, elevation: 6 }}>
+            <Text className="text-[17px] font-bold text-[#031529]">Salvar Documento</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
