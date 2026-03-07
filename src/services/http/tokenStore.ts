@@ -10,11 +10,46 @@ export type TokenPair = {
 
 let accessTokenMemory: string | null = null;
 let refreshTokenMemory: string | null = null;
+let warnedStorageFailure = false;
+
+function warnStorageFailure(error: unknown): void {
+  if (warnedStorageFailure) {
+    return;
+  }
+
+  warnedStorageFailure = true;
+  console.warn('AsyncStorage indisponível. Usando fallback em memória para sessão.', error);
+}
+
+async function safeGetItem(key: string): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(key);
+  } catch (error) {
+    warnStorageFailure(error);
+    return null;
+  }
+}
+
+async function safeSetItem(key: string, value: string): Promise<void> {
+  try {
+    await AsyncStorage.setItem(key, value);
+  } catch (error) {
+    warnStorageFailure(error);
+  }
+}
+
+async function safeRemoveItem(key: string): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(key);
+  } catch (error) {
+    warnStorageFailure(error);
+  }
+}
 
 export async function hydrateTokens(): Promise<TokenPair | null> {
   const [accessToken, refreshToken] = await Promise.all([
-    AsyncStorage.getItem(ACCESS_TOKEN_KEY),
-    AsyncStorage.getItem(REFRESH_TOKEN_KEY),
+    safeGetItem(ACCESS_TOKEN_KEY),
+    safeGetItem(REFRESH_TOKEN_KEY),
   ]);
 
   accessTokenMemory = accessToken;
@@ -32,8 +67,8 @@ export async function saveTokens(tokens: TokenPair): Promise<void> {
   refreshTokenMemory = tokens.refreshToken;
 
   await Promise.all([
-    AsyncStorage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken),
-    AsyncStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken),
+    safeSetItem(ACCESS_TOKEN_KEY, tokens.accessToken),
+    safeSetItem(REFRESH_TOKEN_KEY, tokens.refreshToken),
   ]);
 }
 
@@ -41,7 +76,7 @@ export async function clearTokens(): Promise<void> {
   accessTokenMemory = null;
   refreshTokenMemory = null;
 
-  await Promise.all([AsyncStorage.removeItem(ACCESS_TOKEN_KEY), AsyncStorage.removeItem(REFRESH_TOKEN_KEY)]);
+  await Promise.all([safeRemoveItem(ACCESS_TOKEN_KEY), safeRemoveItem(REFRESH_TOKEN_KEY)]);
 }
 
 export function getAccessTokenSync(): string | null {
