@@ -1,16 +1,18 @@
-﻿import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { ApiError, Item, itemsApi } from '../services';
 import { RootStackParamList } from '../types';
+import { calculateProgress, formatRelativeExpiry } from '../utils/date';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MyWarranties'>;
 
-type WarrantyCategory = 'Todos' | 'Computadores' | 'Áudio' | 'Smartphones';
+type WarrantyCategory = string;
 
 type WarrantyTechItem = {
   id: string;
-  category: Exclude<WarrantyCategory, 'Todos'>;
+  category: WarrantyCategory;
   brand: string;
   product: string;
   expiryText: string;
@@ -19,11 +21,9 @@ type WarrantyTechItem = {
   image: string;
 };
 
-const categories: WarrantyCategory[] = ['Todos', 'Computadores', 'Áudio', 'Smartphones'];
-
-const techWarranties: WarrantyTechItem[] = [
+const fallbackWarranties: WarrantyTechItem[] = [
   {
-    id: '2',
+    id: 'fallback-2',
     category: 'Computadores',
     brand: 'APPLE INC.',
     product: 'MacBook Pro M2 - 14"',
@@ -33,7 +33,7 @@ const techWarranties: WarrantyTechItem[] = [
     image: 'https://images.unsplash.com/photo-1517336714739-489689fd1ca8?auto=format&fit=crop&w=500&q=80',
   },
   {
-    id: '1',
+    id: 'fallback-1',
     category: 'Áudio',
     brand: 'SONY MOBILE',
     product: 'Headphones WH-1000XM5',
@@ -43,7 +43,7 @@ const techWarranties: WarrantyTechItem[] = [
     image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=500&q=80',
   },
   {
-    id: '3',
+    id: 'fallback-3',
     category: 'Smartphones',
     brand: 'SAMSUNG',
     product: 'Galaxy S22 Ultra',
@@ -54,15 +54,44 @@ const techWarranties: WarrantyTechItem[] = [
   },
 ];
 
+function toRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function resolveString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function mapApiItemToCard(item: Item): WarrantyTechItem {
+  const metadata = toRecord(item.metadata);
+  const metadataImage = resolveString(metadata?.imageUrl);
+  const metadataCategory = resolveString(metadata?.category);
+  const category = item.category?.name ?? metadataCategory ?? 'Outros';
+  const isExpired = item.status === 'EXPIRED';
+
+  return {
+    id: item.id,
+    category,
+    brand: (item.providerName ?? item.category?.name ?? 'Sem marca').toUpperCase(),
+    product: item.title,
+    expiryText: formatRelativeExpiry(item.expiryDate),
+    progress: isExpired ? 1 : calculateProgress(item.startDate, item.expiryDate),
+    status: isExpired ? 'EXPIRADO' : 'ATIVO',
+    image:
+      metadataImage ??
+      'https://images.unsplash.com/photo-1484704849700-f032a568e944?auto=format&fit=crop&w=500&q=80',
+  };
+}
+
 function TechWarrantyCard({ item, onPress }: { item: WarrantyTechItem; onPress: () => void }) {
   const isExpired = item.status === 'EXPIRADO';
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onPress={onPress}
-      className="mb-3 rounded-xl border border-[#22314D] bg-[#0F1A2E] p-3"
-    >
+    <TouchableOpacity activeOpacity={0.9} onPress={onPress} className="mb-3 rounded-xl border border-[#22314D] bg-[#0F1A2E] p-3">
       <View className="flex-row">
         <Image source={{ uri: item.image }} className="h-16 w-16 rounded-lg" />
 
@@ -91,14 +120,53 @@ function TechWarrantyCard({ item, onPress }: { item: WarrantyTechItem; onPress: 
 
 export function MyWarrantiesScreen({ navigation }: Props) {
   const [selectedCategory, setSelectedCategory] = useState<WarrantyCategory>('Todos');
+  const [warranties, setWarranties] = useState<WarrantyTechItem[]>(fallbackWarranties);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  const loadWarranties = useCallback(async () => {
+    try {
+      const result = await itemsApi.list(
+        {
+          type: 'WARRANTY',
+          sortBy: 'expiryDate',
+          sortOrder: 'asc',
+          pageSize: 100,
+        },
+        {
+          retry: { enabled: true, retries: 1 },
+        }
+      );
+
+      if (result.items.length) {
+        setWarranties(result.items.map(mapApiItemToCard));
+      }
+
+      setApiError(null);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setApiError(error.message);
+      } else {
+        setApiError('Falha ao carregar garantias.');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadWarranties();
+  }, [loadWarranties]);
+
+  const categories = useMemo(() => {
+    const unique = Array.from(new Set(warranties.map((item) => item.category))).sort((a, b) => a.localeCompare(b));
+    return ['Todos', ...unique];
+  }, [warranties]);
 
   const filteredWarranties = useMemo(() => {
     if (selectedCategory === 'Todos') {
-      return techWarranties;
+      return warranties;
     }
 
-    return techWarranties.filter((item) => item.category === selectedCategory);
-  }, [selectedCategory]);
+    return warranties.filter((item) => item.category === selectedCategory);
+  }, [selectedCategory, warranties]);
 
   return (
     <View className="flex-1 bg-[#060D1A]">
@@ -119,7 +187,9 @@ export function MyWarrantiesScreen({ navigation }: Props) {
             </TouchableOpacity>
 
             <View className="flex-row items-center gap-3">
-              <TouchableOpacity className="h-10 w-10 items-center justify-center"><Feather name="search" size={24} color="#8FA3C0" /></TouchableOpacity>
+              <TouchableOpacity className="h-10 w-10 items-center justify-center">
+                <Feather name="search" size={24} color="#8FA3C0" />
+              </TouchableOpacity>
               <TouchableOpacity className="relative h-10 w-10 items-center justify-center">
                 <Feather name="bell" size={24} color="#8FA3C0" />
                 <View className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-[#22D3EE]" />
@@ -134,6 +204,12 @@ export function MyWarrantiesScreen({ navigation }: Props) {
       </View>
 
       <ScrollView className="flex-1 px-3" contentContainerStyle={{ paddingTop: 10, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+        {apiError ? (
+          <View className="mb-3 rounded-lg border border-[#3A2431] bg-[#25131C] p-3">
+            <Text className="text-[13px] text-[#FF8899]">API: {apiError}</Text>
+          </View>
+        ) : null}
+
         <View className="mb-3">
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 12 }}>
             {categories.map((category) => {
@@ -155,12 +231,14 @@ export function MyWarrantiesScreen({ navigation }: Props) {
 
         <View>
           {filteredWarranties.map((item) => (
-            <TechWarrantyCard
-              key={item.id}
-              item={item}
-              onPress={() => navigation.navigate('WarrantyDetails', { warrantyId: item.id })}
-            />
+            <TechWarrantyCard key={item.id} item={item} onPress={() => navigation.navigate('WarrantyDetails', { warrantyId: item.id })} />
           ))}
+
+          {filteredWarranties.length === 0 ? (
+            <View className="rounded-xl border border-[#22314D] bg-[#0F1A2E] p-4">
+              <Text className="text-[15px] text-[#90A3BF]">Nenhuma garantia encontrada nessa categoria.</Text>
+            </View>
+          ) : null}
         </View>
       </ScrollView>
 

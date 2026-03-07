@@ -3,6 +3,7 @@ import { Feather } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 import { AnimatedEntrance } from '../components/AnimatedEntrance';
+import { useAuth } from '../contexts/AuthContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
@@ -57,6 +58,7 @@ function CloudChip({ label }: { label: string }) {
 }
 
 export function SettingsScreen({ navigation }: Props) {
+  const { signOut } = useAuth();
   const goToStack = (screen: string) => navigation.navigate(screen as never);
 
   return (
@@ -89,7 +91,7 @@ export function SettingsScreen({ navigation }: Props) {
           <DarkSectionTitle label="MINHA CONTA" />
           <DarkRow icon="user" title="Editar Perfil" onPress={() => goToStack('EditProfile')} />
           <DarkRow icon="lock" title="Alterar Senha" onPress={() => goToStack('ChangePassword')} />
-          <DarkRow icon="log-out" title="Sair" danger />
+          <DarkRow icon="log-out" title="Sair" danger onPress={() => void signOut()} />
         </AnimatedEntrance>
 
         <AnimatedEntrance delay={60}>
