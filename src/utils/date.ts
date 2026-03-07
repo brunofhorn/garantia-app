@@ -75,3 +75,52 @@ export function calculateProgress(startDate?: string | null, expiryDate?: string
   const progress = elapsed / total;
   return Math.max(0, Math.min(1, progress));
 }
+
+export function parseBrDateInputToIso(value?: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const normalized = value.replace(/\D/g, '');
+  if (normalized.length !== 8) {
+    return null;
+  }
+
+  const day = Number(normalized.slice(0, 2));
+  const month = Number(normalized.slice(2, 4));
+  const year = Number(normalized.slice(4, 8));
+
+  if (!Number.isInteger(day) || !Number.isInteger(month) || !Number.isInteger(year)) {
+    return null;
+  }
+
+  const date = new Date(year, month - 1, day);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  const mm = String(month).padStart(2, '0');
+  const dd = String(day).padStart(2, '0');
+  return `${year}-${mm}-${dd}`;
+}
+
+export function formatDateInput(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  const day = digits.slice(0, 2);
+  const month = digits.slice(2, 4);
+  const year = digits.slice(4, 8);
+
+  if (digits.length <= 2) {
+    return day;
+  }
+
+  if (digits.length <= 4) {
+    return `${day}/${month}`;
+  }
+
+  return `${day}/${month}/${year}`;
+}

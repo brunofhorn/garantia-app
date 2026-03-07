@@ -1,12 +1,14 @@
 import { ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
-  AuthSession,
   AuthSigninRequest,
   AuthSignupRequest,
   AuthUser,
+  ApiError,
   apiClient,
   authApi,
   clearTokens,
+  extractAuthUser,
+  extractTokenPair,
   getAccessTokenSync,
   hydrateTokens,
   saveTokens,
@@ -24,8 +26,15 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-function mapSessionToUser(session: AuthSession): AuthUser {
-  return session.user;
+function makeTemporaryUser(email: string, explicitName?: string): AuthUser {
+  const localPart = email.split('@')[0] ?? 'usuario';
+  const normalizedName = explicitName?.trim() || localPart.replace(/[._-]/g, ' ');
+
+  return {
+    id: `temp-${Date.now()}`,
+    email,
+    name: normalizedName,
+  };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -38,26 +47,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshProfile = useCallback(async () => {
-    const profile = await authApi.me();
-    setUser(profile.user);
+    const profile = (await authApi.me()) as unknown;
+    const parsedUser = extractAuthUser(profile);
+
+    if (!parsedUser) {
+      throw new ApiError({
+        message: 'Resposta inválida ao carregar perfil do usuário.',
+        code: 'AUTH_ME_INVALID_RESPONSE',
+        details: profile,
+      });
+    }
+
+    setUser(parsedUser);
   }, []);
 
   const signIn = useCallback(async (payload: AuthSigninRequest) => {
-    const session = await authApi.signin(payload, { retry: false });
-    await saveTokens({
-      accessToken: session.accessToken,
-      refreshToken: session.refreshToken,
-    });
-    setUser(mapSessionToUser(session));
+    const response = (await authApi.signin(payload, { retry: false })) as unknown;
+    const tokens = extractTokenPair(response);
+
+    if (!tokens) {
+      throw new ApiError({
+        message: 'Resposta inválida no login. Tokens não encontrados.',
+        code: 'AUTH_SIGNIN_INVALID_RESPONSE',
+        details: response,
+      });
+    }
+
+    await saveTokens(tokens);
+
+    const userFromLogin = extractAuthUser(response) ?? makeTemporaryUser(payload.email);
+    setUser(userFromLogin);
   }, []);
 
   const signUp = useCallback(async (payload: AuthSignupRequest) => {
-    const session = await authApi.signup(payload, { retry: false });
-    await saveTokens({
-      accessToken: session.accessToken,
-      refreshToken: session.refreshToken,
-    });
-    setUser(mapSessionToUser(session));
+    const response = (await authApi.signup(payload, { retry: false })) as unknown;
+    const tokens = extractTokenPair(response);
+
+    if (!tokens) {
+      throw new ApiError({
+        message: 'Resposta inválida no cadastro. Tokens não encontrados.',
+        code: 'AUTH_SIGNUP_INVALID_RESPONSE',
+        details: response,
+      });
+    }
+
+    await saveTokens(tokens);
+
+    const userFromSignup = extractAuthUser(response) ?? makeTemporaryUser(payload.email, payload.name);
+    setUser(userFromSignup);
   }, []);
 
   const signOut = useCallback(async () => {

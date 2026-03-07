@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { ApiError, Item, itemsApi } from '../services';
 import { RootStackParamList } from '../types';
 import { calculateProgress, formatRelativeExpiry } from '../utils/date';
@@ -20,39 +21,6 @@ type WarrantyTechItem = {
   status: 'ATIVO' | 'EXPIRADO';
   image: string;
 };
-
-const fallbackWarranties: WarrantyTechItem[] = [
-  {
-    id: 'fallback-2',
-    category: 'Computadores',
-    brand: 'APPLE INC.',
-    product: 'MacBook Pro M2 - 14"',
-    expiryText: 'Expira em 14 meses',
-    progress: 0.72,
-    status: 'ATIVO',
-    image: 'https://images.unsplash.com/photo-1517336714739-489689fd1ca8?auto=format&fit=crop&w=500&q=80',
-  },
-  {
-    id: 'fallback-1',
-    category: 'Áudio',
-    brand: 'SONY MOBILE',
-    product: 'Headphones WH-1000XM5',
-    expiryText: 'Expira em 3 meses',
-    progress: 0.2,
-    status: 'ATIVO',
-    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=500&q=80',
-  },
-  {
-    id: 'fallback-3',
-    category: 'Smartphones',
-    brand: 'SAMSUNG',
-    product: 'Galaxy S22 Ultra',
-    expiryText: 'Expirou em Jan 2024',
-    progress: 1,
-    status: 'EXPIRADO',
-    image: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=500&q=80',
-  },
-];
 
 function toRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object') {
@@ -120,7 +88,7 @@ function TechWarrantyCard({ item, onPress }: { item: WarrantyTechItem; onPress: 
 
 export function MyWarrantiesScreen({ navigation }: Props) {
   const [selectedCategory, setSelectedCategory] = useState<WarrantyCategory>('Todos');
-  const [warranties, setWarranties] = useState<WarrantyTechItem[]>(fallbackWarranties);
+  const [warranties, setWarranties] = useState<WarrantyTechItem[]>([]);
   const [apiError, setApiError] = useState<string | null>(null);
 
   const loadWarranties = useCallback(async () => {
@@ -137,10 +105,7 @@ export function MyWarrantiesScreen({ navigation }: Props) {
         }
       );
 
-      if (result.items.length) {
-        setWarranties(result.items.map(mapApiItemToCard));
-      }
-
+      setWarranties(result.items.map(mapApiItemToCard));
       setApiError(null);
     } catch (error) {
       if (error instanceof ApiError) {
@@ -151,9 +116,11 @@ export function MyWarrantiesScreen({ navigation }: Props) {
     }
   }, []);
 
-  useEffect(() => {
-    void loadWarranties();
-  }, [loadWarranties]);
+  useFocusEffect(
+    useCallback(() => {
+      void loadWarranties();
+    }, [loadWarranties])
+  );
 
   const categories = useMemo(() => {
     const unique = Array.from(new Set(warranties.map((item) => item.category))).sort((a, b) => a.localeCompare(b));
@@ -236,7 +203,7 @@ export function MyWarrantiesScreen({ navigation }: Props) {
 
           {filteredWarranties.length === 0 ? (
             <View className="rounded-xl border border-[#22314D] bg-[#0F1A2E] p-4">
-              <Text className="text-[15px] text-[#90A3BF]">Nenhuma garantia encontrada nessa categoria.</Text>
+              <Text className="text-[15px] text-[#90A3BF]">Nenhuma garantia encontrada.</Text>
             </View>
           ) : null}
         </View>

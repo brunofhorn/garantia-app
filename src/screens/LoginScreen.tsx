@@ -7,8 +7,8 @@ import { useAuth } from '../contexts/AuthContext';
 
 export function LoginScreen() {
   const { signIn } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('bruno+demo@example.com');
+  const [password, setPassword] = useState('StrongPass123!');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { AnimatedEntrance } from '../components/AnimatedEntrance';
-import { ApiError, DashboardSummary, Item, dashboardApi } from '../services';
+import { ApiError, DashboardSummary, Item, dashboardApi, itemsApi } from '../services';
 import { daysUntil, parseDate } from '../utils/date';
 
 type CriticalItem = {
@@ -33,52 +34,13 @@ type UpcomingItem = {
   dot: string;
 };
 
-const fallbackCritical: CriticalItem[] = [
-  {
-    id: 'fallback-1',
-    title: 'MacBook Pro M2',
-    subtitle: 'Apple Care+',
-    tag: 'Vence em 2 dias',
-    icon: 'alert-circle',
-    iconColor: '#FF6B6B',
-    badgeBg: '#2B1C2B',
-    badgeText: '#FF6B6B',
-  },
-  {
-    id: 'fallback-2',
-    title: 'PlayStation 5',
-    subtitle: 'Sony Br',
-    tag: 'Vence em 5 dias',
-    icon: 'alert-triangle',
-    iconColor: '#FFC93D',
-    badgeBg: '#2B2A1C',
-    badgeText: '#F7C948',
-  },
-];
-
-const fallbackStats: StatItem[] = [
-  { id: 'fallback-1', title: 'TOTAL', value: '24', icon: 'archive', iconColor: '#22D3EE' },
-  { id: 'fallback-2', title: 'GARANTIA', value: '18', icon: 'check-circle', iconColor: '#00D4FF' },
-  { id: 'fallback-3', title: 'EXPIRADAS', value: '04', icon: 'clock', iconColor: '#FF6B6B' },
-  { id: 'fallback-4', title: 'EM BREVE', value: '02', icon: 'corner-down-right', iconColor: '#F7C948' },
-];
-
-const fallbackUpcoming: UpcomingItem[] = [
-  { id: 'fallback-1', title: 'Cafeteira Expressa', subtitle: 'Expira em 2 dias • Cozinha', date: '28 MAR', dot: '#FF5D5D' },
-  { id: 'fallback-2', title: 'Headset Wireless Pro', subtitle: 'Expira em 5 dias • Acessórios', date: '31 MAR', dot: '#F5B221' },
-  { id: 'fallback-3', title: 'Licença Office 365', subtitle: 'Expira em 7 dias • Software', date: '02 ABR', dot: '#7C8DA6' },
-];
-
 function formatShortDate(value?: string): string {
   const parsed = parseDate(value);
   if (!parsed) {
     return '--';
   }
 
-  return parsed
-    .toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
-    .replace('.', '')
-    .toUpperCase();
+  return parsed.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '').toUpperCase();
 }
 
 function getStatusTag(item: Item): string {
@@ -193,15 +155,15 @@ function StatCard({ item }: { item: StatItem }) {
 }
 
 export function DashboardScreen({ navigation }: { navigation: any }) {
-  const [criticalItems, setCriticalItems] = useState<CriticalItem[]>(fallbackCritical);
-  const [statsItems, setStatsItems] = useState<StatItem[]>(fallbackStats);
-  const [upcomingItems, setUpcomingItems] = useState<UpcomingItem[]>(fallbackUpcoming);
-  const [monthlyInvestment, setMonthlyInvestment] = useState('R$ 14.820,00');
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [upcoming, setUpcoming] = useState<Item[]>([]);
+  const [recentItem, setRecentItem] = useState<Item | null>(null);
+  const [monthlyInvestment, setMonthlyInvestment] = useState('R$ 0,00');
   const [apiError, setApiError] = useState<string | null>(null);
 
   const loadDashboardData = useCallback(async () => {
     try {
-      const [summary, upcoming] = await Promise.all([
+      const [summaryResponse, upcomingResponse, recentResponse] = await Promise.all([
         dashboardApi.summary({
           retry: { enabled: true, retries: 1 },
         }),
@@ -211,23 +173,25 @@ export function DashboardScreen({ navigation }: { navigation: any }) {
             retry: { enabled: true, retries: 1 },
           }
         ),
+        itemsApi.list(
+          {
+            sortBy: 'updatedAt',
+            sortOrder: 'desc',
+            pageSize: 1,
+          },
+          {
+            retry: { enabled: true, retries: 1 },
+          }
+        ),
       ]);
 
-      setStatsItems(toStatItems(summary));
+      setSummary(summaryResponse);
+      setUpcoming(upcomingResponse.items.length ? upcomingResponse.items : summaryResponse.upcoming ?? []);
+      setRecentItem(recentResponse.items[0] ?? null);
 
-      const sourceItems = upcoming.items.length ? upcoming.items : summary.upcoming ?? [];
-      if (sourceItems.length) {
-        setCriticalItems(sourceItems.slice(0, 2).map(mapCriticalItem));
-        setUpcomingItems(sourceItems.slice(0, 3).map(mapUpcomingItem));
-      }
-
-      const monthly = summary.monthlySubscriptionsEstimate ?? summary.subscriptions?.monthlyEstimate;
-      const currency = summary.currency ?? summary.subscriptions?.currency ?? 'BRL';
-
-      if (typeof monthly === 'number') {
-        setMonthlyInvestment(formatMoney(monthly, currency));
-      }
-
+      const monthly = summaryResponse.monthlySubscriptionsEstimate ?? summaryResponse.subscriptions?.monthlyEstimate ?? 0;
+      const currency = summaryResponse.currency ?? summaryResponse.subscriptions?.currency ?? 'BRL';
+      setMonthlyInvestment(formatMoney(monthly, currency));
       setApiError(null);
     } catch (error) {
       if (error instanceof ApiError) {
@@ -239,9 +203,15 @@ export function DashboardScreen({ navigation }: { navigation: any }) {
     }
   }, []);
 
-  useEffect(() => {
-    void loadDashboardData();
-  }, [loadDashboardData]);
+  useFocusEffect(
+    useCallback(() => {
+      void loadDashboardData();
+    }, [loadDashboardData])
+  );
+
+  const statsItems = useMemo(() => toStatItems(summary ?? {}), [summary]);
+  const criticalItems = useMemo(() => upcoming.slice(0, 2).map(mapCriticalItem), [upcoming]);
+  const upcomingItems = useMemo(() => upcoming.slice(0, 3).map(mapUpcomingItem), [upcoming]);
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-[#060D1A]">
@@ -294,6 +264,11 @@ export function DashboardScreen({ navigation }: { navigation: any }) {
             {criticalItems.map((item) => (
               <CriticalCard key={item.id} item={item} />
             ))}
+            {criticalItems.length === 0 ? (
+              <View className="rounded-xl border border-[#26324A] bg-[#111C31] px-4 py-5">
+                <Text className="text-[14px] text-[#8FA2BD]">Sem alertas críticos no momento.</Text>
+              </View>
+            ) : null}
           </ScrollView>
         </AnimatedEntrance>
 
@@ -310,7 +285,7 @@ export function DashboardScreen({ navigation }: { navigation: any }) {
             <Text className="text-[13px] tracking-[2px] text-[#7D8FA8]">INVESTIMENTO MENSAL</Text>
             <View className="mt-2 flex-row items-end justify-between">
               <Text className="text-[34px] font-semibold text-[#F8FAFC]">{monthlyInvestment}</Text>
-              <Text className="text-[14px] font-semibold text-[#19D6FF]">+12%</Text>
+              <Text className="text-[14px] font-semibold text-[#19D6FF]">Assinaturas</Text>
             </View>
             <View className="mt-7 flex-row justify-between px-1">
               {['JAN', 'FEV', 'MAR', 'ABR', 'MAI'].map((m) => (
@@ -330,21 +305,29 @@ export function DashboardScreen({ navigation }: { navigation: any }) {
             </TouchableOpacity>
           </View>
 
-          <View className="mt-3 rounded-xl border border-[#2A3550] bg-[#121D32] p-3">
-            <View className="flex-row items-center">
-              <View className="h-16 w-16 rounded-lg bg-[#2A3550]" />
-              <View className="ml-3 flex-1">
-                <Text className="text-[17px] font-bold text-[#F8FAFC]">Smart TV 4K Ultra</Text>
-                <Text className="text-[13px] text-[#7D8FA8]">Expira em 14 meses</Text>
-              </View>
-              <View className="items-end">
-                <Text className="text-[16px] font-semibold text-[#AFC0D8]">R$ 4.299</Text>
-                <View className="mt-1 rounded-md bg-[#26324A] px-2 py-1">
-                  <Text className="text-[11px] tracking-[1px] text-[#8FA2BD]">ELETRÔNICOS</Text>
+          {recentItem ? (
+            <View className="mt-3 rounded-xl border border-[#2A3550] bg-[#121D32] p-3">
+              <View className="flex-row items-center">
+                <View className="h-16 w-16 rounded-lg bg-[#2A3550]" />
+                <View className="ml-3 flex-1">
+                  <Text className="text-[17px] font-bold text-[#F8FAFC]">{recentItem.title}</Text>
+                  <Text className="text-[13px] text-[#7D8FA8]">{getStatusTag(recentItem)}</Text>
+                </View>
+                <View className="items-end">
+                  <Text className="text-[16px] font-semibold text-[#AFC0D8]">
+                    {typeof recentItem.amount === 'number' ? formatMoney(recentItem.amount, recentItem.currency ?? 'BRL') : '--'}
+                  </Text>
+                  <View className="mt-1 rounded-md bg-[#26324A] px-2 py-1">
+                    <Text className="text-[11px] tracking-[1px] text-[#8FA2BD]">{recentItem.type}</Text>
+                  </View>
                 </View>
               </View>
             </View>
-          </View>
+          ) : (
+            <View className="mt-3 rounded-xl border border-[#2A3550] bg-[#121D32] p-4">
+              <Text className="text-[14px] text-[#8FA2BD]">Nenhum ativo encontrado.</Text>
+            </View>
+          )}
         </AnimatedEntrance>
 
         <AnimatedEntrance delay={210}>
@@ -361,6 +344,9 @@ export function DashboardScreen({ navigation }: { navigation: any }) {
                 <Text className="text-[13px] font-semibold text-[#F8FAFC]">{item.date}</Text>
               </View>
             ))}
+            {upcomingItems.length === 0 ? (
+              <Text className="py-2 text-[14px] text-[#8FA2BD]">Sem vencimentos próximos.</Text>
+            ) : null}
           </View>
         </AnimatedEntrance>
       </ScrollView>

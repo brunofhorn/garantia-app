@@ -1,6 +1,7 @@
 import axios, { AxiosError, AxiosHeaders, AxiosInstance } from 'axios';
 import { AuthRefreshRequest, AuthRefreshResponse, ApiEnvelope, ApiFailureEnvelope, ApiMeta } from '../types';
 import { API_BASE_URL, HTTP_TIMEOUT_MS } from './constants';
+import { extractTokenPair } from './authParsers';
 import { ApiError, isApiError } from './errors';
 import { getRetryDelayMs, resolveRetryOptions, shouldRetryRequest } from './retry';
 import { clearTokens, getAccessTokenSync, getRefreshTokenSync, saveTokens, TokenPair } from './tokenStore';
@@ -192,16 +193,19 @@ export class ApiClient {
       );
 
       const result = unwrapApiPayload<AuthRefreshResponse>(response.data);
+      const parsedTokens = extractTokenPair(result.data);
 
-      await saveTokens({
-        accessToken: result.data.accessToken,
-        refreshToken: result.data.refreshToken,
-      });
+      if (!parsedTokens) {
+        throw new ApiError({
+          message: 'Resposta inválida ao renovar sessão.',
+          status: 401,
+          code: 'AUTH_REFRESH_INVALID_RESPONSE',
+          details: result.data,
+        });
+      }
 
-      return {
-        accessToken: result.data.accessToken,
-        refreshToken: result.data.refreshToken,
-      };
+      await saveTokens(parsedTokens);
+      return parsedTokens;
     })();
 
     try {
